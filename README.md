@@ -6,7 +6,6 @@ This repository is a template for extending a [fairseq](https://github.com/faceb
 seq2seq models.
 Please follow the installation instruction of `fairseq`.
 
-Mixture model uses `functorch` for efficient computations, but it's only compatible with torch>=1.13
 
 ## Quick Start
 
