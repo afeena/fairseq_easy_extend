@@ -1,0 +1,39 @@
+# @package _group_
+task:
+  _name: translation_lev
+  data: ??? # path to data directory
+  source_lang: de
+  target_lang: en
+  noise: random_mask
+criterion:
+  _name: nat_loss
+model:
+  _name: cmlm_transformer_hydra
+  share_decoder_input_output_embed: true
+  decoder:
+    learned_pos: true
+  encoder:
+    learned_pos: true
+  dropout: 0.2
+  label_smoothing: 0.1
+  length_loss_factor: 0.01
+optimizer:
+  _name: adam
+  adam_betas: (0.9,0.98)
+lr_scheduler:
+  _name: inverse_sqrt
+  warmup_updates: 2000
+  warmup_init_lr: 1e-07
+dataset:
+  max_tokens: 8192
+  validate_interval_updates: 1000
+optimization:
+  lr: [0.0005]
+  update_freq: [8]
+  max_update: 20000
+  stop_min_lr: 1e-09
+checkpoint:
+  no_epoch_checkpoints: true
+common:
+  log_format: simple
+  log_interval: 100
