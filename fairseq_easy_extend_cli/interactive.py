@@ -16,15 +16,16 @@ import time
 from argparse import Namespace
 from collections import namedtuple
 
-import fairseq.tasks.translation
+
 import numpy as np
 import torch
 from fairseq import checkpoint_utils, distributed_utils, tasks, utils
-from fairseq.dataclass.configs import FairseqConfig
-from fairseq.dataclass.utils import convert_namespace_to_omegaconf
 from fairseq.token_generation_constraints import pack_constraints, unpack_constraints
 from fairseq_cli.generate import get_symbols_to_strip_from_output
 
+
+from fairseq_easy_extend.dataclass.configs import FEETextgenConfig as FairseqConfig
+from fairseq_easy_extend.dataclass.utils import convert_namespace_to_omegaconf
 from fairseq_easy_extend import options
 
 logging.basicConfig(
