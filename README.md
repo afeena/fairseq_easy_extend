@@ -1,4 +1,4 @@
-# DGMs for text generation
+# Reinforcement Learning for Non-Autoregressive Neural Machine Translation
 
 ## Requirements
 
