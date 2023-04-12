@@ -8,7 +8,7 @@ task:
 criterion:
   _name: nat_loss
 model:
-  _name: cmlm_transformer_hydra
+  _name: cmlm_transformer_base
   share_decoder_input_output_embed: true
   decoder:
     learned_pos: true
