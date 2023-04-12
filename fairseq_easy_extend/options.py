@@ -13,14 +13,14 @@ from fairseq.data.indexed_dataset import get_available_dataset_impl
 # this import is for backward compatibility
 from fairseq.utils import csv_str_list, eval_bool, eval_str_dict, eval_str_list  # noqa
 
-from fairseq_easy_extend.dataclass.configs import (
+from fairseq.dataclass.configs import (
     CheckpointConfig,
-    CDGMCommonConfig as CommonConfig,
+    CommonConfig,
     CommonEvalConfig,
     DatasetConfig,
     DistributedTrainingConfig,
     EvalLMConfig,
-    CDGMGenerationConfig as GenerationConfig,
+    GenerationConfig,
     InteractiveConfig,
     OptimizationConfig,
     EMAConfig,

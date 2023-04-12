@@ -7,6 +7,7 @@ hydra_init()
 import fairseq_easy_extend.criterions  # noqa
 import fairseq_easy_extend.models  # noqa
 import fairseq_easy_extend.tasks  # noqa
+import fairseq_easy_extend.dataclass  # noqa
 
 import fairseq.distributed  # noqa
 import fairseq.optim  # noqa
@@ -15,6 +16,7 @@ import fairseq.pdb  # noqa
 import fairseq.scoring  # noqa
 import fairseq.tasks  # noqa
 import fairseq.token_generation_constraints  # noqa
+import fairseq.logging  # noqa
 
 import fairseq.benchmark  # noqa
 import fairseq.model_parallel  # noqa
