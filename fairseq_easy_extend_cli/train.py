@@ -7,8 +7,13 @@
 Train a new model on one or across multiple GPUs.
 """
 import fairseq_cli.train as train
-from fairseq.dataclass.configs import FairseqConfig
-
+from fairseq_easy_extend.dataclass.configs import FEETextgenConfig as FairseqConfig
+from fairseq_easy_extend.dataclass.utils import convert_namespace_to_omegaconf as fee_convert_namespace_to_omegaconf
+from fairseq_easy_extend.dataclass.initialize import add_defaults as fee_add_defaults
+# path config and helper functions
+train.FairseqConfig = FairseqConfig
+train.add_defaults = fee_add_defaults
+train.convert_namespace_to_omegaconf = fee_convert_namespace_to_omegaconf
 
 def main(cfg: FairseqConfig) -> None:
     train.main(cfg)

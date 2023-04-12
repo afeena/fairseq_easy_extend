@@ -7,9 +7,15 @@
 
 import fairseq_cli.hydra_train as fairseq_hydra_train
 
-from fairseq_easy_extend_cli.train import main as cdgm_pre_main
+from fairseq_easy_extend_cli.train import main as fee_pre_main
+from fairseq_easy_extend.dataclass.initialize import add_defaults as fee_add_defaults
+from fairseq_easy_extend.dataclass.initialize import hydra_init as fee_hydra_init
+from fairseq_easy_extend.dataclass.configs import FEETextgenConfig
 
-fairseq_hydra_train.pre_main = cdgm_pre_main
+fairseq_hydra_train.pre_main = fee_pre_main
+fairseq_hydra_train.add_defaults = fee_add_defaults
+fairseq_hydra_train.hydra_init = fee_hydra_init
+fairseq_hydra_train.FairseqConfig = FEETextgenConfig
 
 
 def cli_main():
