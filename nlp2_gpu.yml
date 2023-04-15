@@ -1,0 +1,21 @@
+name: nlp2_gpu
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - jupyter=1.0.0
+  - python=3.9.7
+  - pip=21.2.4
+  - matplotlib
+  - pip:
+    - torch==1.12.1+cu113
+    - torchvision==0.13.1+cu113
+    - torchaudio==0.12.1
+    - --extra-index-url https://download.pytorch.org/whl/cu113
+    - fairseq==0.12.2
+    - sacremoses
+    - tqdm==4.62.3
+    - wandb
+    - setuptools==59.5.0
+    - scikit-learn-extra
