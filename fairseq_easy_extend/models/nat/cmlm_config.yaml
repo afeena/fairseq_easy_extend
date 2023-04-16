@@ -35,5 +35,6 @@ optimization:
 checkpoint:
   no_epoch_checkpoints: true
 common:
+  wandb_project: nlp2-project-C
   log_format: simple
-  log_interval: 100
+  log_interval: 5
