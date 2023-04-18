@@ -72,7 +72,7 @@ class RLCriterion(FairseqCriterion):
             #R(*) = eval_metric(sampled_sentence_string, target_sentence)
             #R(*) is a number, BLEU, сhrf, etc.
 
-        #loss = -log_prob(outputs)*R()
+        #loss = -log_prob(sample_outputs)*R()
         #loss = loss.mean()
 
         return loss
