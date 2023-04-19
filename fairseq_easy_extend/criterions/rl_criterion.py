@@ -34,8 +34,9 @@ class RLCriterion(FairseqCriterion):
 
         outputs = model(src_tokens, src_lengths, prev_output_tokens, tgt_tokens)
         #get loss only on tokens, not on lengths
-        outputs = outputs["word_ins"]
-        masks = outputs.get("mask", None)
+        outputs = outputs["word_ins"].get("out", None)
+        masks = outputs["word_ins"].get("mask", None)
+
         loss = self._compute_loss(outputs, tgt_tokens, masks)
 
         # NOTE:
