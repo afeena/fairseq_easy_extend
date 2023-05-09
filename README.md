@@ -13,7 +13,7 @@ Please follow the installation instruction of `fairseq`
    3. if you are not familiar with NMT you can read https://evgeniia.tokarch.uk/blog/neural-machine-translation/
    4. Some notes on fairseq extension https://evgeniia.tokarch.uk/blog/extending-fairseq-incomplete-guide/
 3. Objective implementation:
-   1. check rl_criterion.py in `criterion` folder it gives you a hint how to start working on your objective
+   1. check `rl_criterion.py` in `criterion` folder it gives you a hint how to start working on your objective
    2. Nice explanation of RL for NMT https://www.cl.uni-heidelberg.de/statnlpgroup/blog/rl4nmt/
    3. You can pick any metric and import any library of your choice
 4. Run the training with your new objective function
