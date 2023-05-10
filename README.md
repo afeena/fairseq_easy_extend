@@ -16,5 +16,7 @@ Please follow the installation instruction of `fairseq`
    1. check `rl_criterion.py` in `criterion` folder it gives you a hint how to start working on your objective
    2. Nice explanation of RL for NMT https://www.cl.uni-heidelberg.de/statnlpgroup/blog/rl4nmt/
    3. You can pick any metric and import any library of your choice
-4. Run the training with your new objective function
+4. Run the training with your new objective function:
+   1. You can strat fine-tuning to get better/faster results, find `checkpoint_best.pt` in the drive
+   2. It's enough to fine-tune for <1k steps
 
