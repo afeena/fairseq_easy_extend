@@ -5,6 +5,7 @@ import inspect
 import logging
 import os
 import re
+import sys
 from argparse import ArgumentError, ArgumentParser, Namespace
 from dataclasses import _MISSING_TYPE, MISSING, is_dataclass
 from enum import Enum
@@ -506,10 +507,15 @@ def merge_with_parent(dc: FairseqDataclass, cfg: DictConfig, remove_missing=Fals
 
 
 def _flatten_config(cfg, parent_key="", sep="_"):
+    if sys.version_info.major == 3 and sys.version_info.minor >= 10:
+
+        from collections.abc import MutableMapping as mm
+    else:
+        from collections import MutableMapping as mm
     items = []
     for k, v in cfg.items():
         new_key = parent_key + sep + k if parent_key else k
-        if isinstance(v, collections.MutableMapping):
+        if isinstance(v, mm):
             items.extend(_flatten_config(v, new_key, sep=sep).items())
         else:
             items.append((new_key, v))
