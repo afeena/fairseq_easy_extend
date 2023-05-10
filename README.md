@@ -18,5 +18,6 @@ Please follow the installation instruction of `fairseq`
    3. You can pick any metric and import any library of your choice
 4. Run the training with your new objective function:
    1. You can strat fine-tuning to get better/faster results, find `checkpoint_best.pt` in the drive
-   2. It's enough to fine-tune for <1k steps
+   2. set `criterion._name` to the name of your implemented criterion
+   3. It's enough to fine-tune for <1k steps
 
