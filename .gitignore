@@ -7,3 +7,4 @@
 # folders
 __pycache__
 iwslt14.tokenized.de-en
+outputs
