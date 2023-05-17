@@ -1,5 +1,9 @@
-__pycache__/
+# files
 *.py[cod]
-.idea/
-
 *.txt
+*.pt
+*.pdf
+
+# folders
+__pycache__
+iwslt14.tokenized.de-en
