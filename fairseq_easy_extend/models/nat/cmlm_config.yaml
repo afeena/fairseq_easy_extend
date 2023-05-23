@@ -1,12 +1,17 @@
 # @package _group_
 task:
   _name: translation_lev
-  data: ??? # path to data directory
+  data: /home/neil/nanmt-fairseq/iwslt14.tokenized.de-en # path to data directory
   source_lang: de
   target_lang: en
   noise: random_mask
 criterion:
-  _name: nat_loss
+  _name: rl_loss
+  sentence_level_metric: bleu # bleu or chrf
+  sampling: multinomial
+  # wandb_entity: abhinav-neil
+  # use_wandb: true
+  wandb_project: nlp2-nanmt
 model:
   _name: cmlm_transformer_base
   share_decoder_input_output_embed: true
@@ -22,18 +27,28 @@ optimizer:
   adam_betas: (0.9,0.98)
 lr_scheduler:
   _name: inverse_sqrt
-  warmup_updates: 2000
+  warmup_updates: 1
   warmup_init_lr: 1e-07
 dataset:
+  batch_size: 64
   max_tokens: 8192
-  validate_interval_updates: 1000
+  validate_interval_updates: 100
 optimization:
   lr: [0.0005]
   update_freq: [8]
-  max_update: 20000
+  max_update: 1000  # max # training steps
+  max_epoch: 0  # max # training epochs
   stop_min_lr: 1e-09
 checkpoint:
+  save_dir: /home/neil/nanmt-fairseq/fairseq_easy_extend/models/nat/checkpoints/
+  restore_file: /home/neil/nanmt-fairseq/fairseq_easy_extend/models/nat/checkpoints/checkpoint_pretrained.pt
+  # finetune_from_model: true
+  reset_optimizer: true
+  save_interval: 1  # save a checkpoint every N epochs
+  save_interval_updates: 20  # save a checkpoint every N updates
   no_epoch_checkpoints: true
+  patience: 10 # early stopping patience
+  # checkpoint_suffix: _best
 common:
   log_format: simple
   log_interval: 100

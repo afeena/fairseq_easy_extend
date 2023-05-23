@@ -6,5 +6,8 @@
 
 # folders
 __pycache__
+.vscode
 iwslt14.tokenized.de-en
 outputs
+wandb
+```
