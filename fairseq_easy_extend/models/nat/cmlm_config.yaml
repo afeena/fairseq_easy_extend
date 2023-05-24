@@ -7,7 +7,7 @@ task:
   noise: random_mask
 criterion:
   _name: rl_loss
-  sentence_level_metric: bleu # bleu or chrf
+  sentence_level_metric: bertscore # one of bleu, chrf, bertscore, bleurt
   sampling: multinomial
   # wandb_entity: abhinav-neil
   # use_wandb: true
@@ -32,11 +32,11 @@ lr_scheduler:
 dataset:
   batch_size: 64
   max_tokens: 8192
-  validate_interval_updates: 100
+  validate_interval_updates: 20
 optimization:
-  lr: [0.0005]
-  update_freq: [8]
-  max_update: 1000  # max # training steps
+  lr: [0.0001]
+  update_freq: [8] # update every N batches
+  max_update: 1000  # max # updates
   max_epoch: 0  # max # training epochs
   stop_min_lr: 1e-09
 checkpoint:
@@ -46,9 +46,11 @@ checkpoint:
   reset_optimizer: true
   save_interval: 1  # save a checkpoint every N epochs
   save_interval_updates: 20  # save a checkpoint every N updates
+  keep_interval_updates: 1  # keep last N checkpoints
+  keep_best_checkpoints: 1 # keep best N checkpoints
   no_epoch_checkpoints: true
-  patience: 10 # early stopping patience
-  # checkpoint_suffix: _best
+  patience: -1 # early stopping in N validations
+  checkpoint_suffix: _bert
 common:
   log_format: simple
   log_interval: 100

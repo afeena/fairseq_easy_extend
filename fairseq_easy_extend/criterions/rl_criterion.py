@@ -8,8 +8,8 @@ from fairseq.dataclass import FairseqDataclass
 from dataclasses import dataclass, field
 from fairseq.logging import metrics
 from sacrebleu.metrics import BLEU, CHRF
+from evaluate import load
 import wandb
-wandb.init(project="nlp2-nanmt")
 
 @dataclass
 class RLCriterionConfig(FairseqDataclass):
@@ -31,7 +31,8 @@ class RLCriterion(FairseqCriterion):
         self.sampling = sampling
         self.bleu = BLEU(effective_order="True")
         self.chrf = CHRF()
-        
+        self.bertscore = load('bertscore')
+        self.bleurt = load('bleurt', module_type='metric')
         # init wandb project
         wandb.init(project=wandb_project)
         
@@ -78,6 +79,9 @@ class RLCriterion(FairseqCriterion):
         return loss, sample_size, logging_output
 
     def decode(self, toks, escape_unk=False):
+        """
+        Decode a tensor of token ids into a string.
+        """
         with torch.no_grad():
             s = self.tgt_dict.string(
                 toks.int().cpu(),
@@ -94,18 +98,34 @@ class RLCriterion(FairseqCriterion):
             s = self.tokenizer.decode(s)
         return s
 
-    def compute_reward(self, outputs, targets):
+    def compute_reward(self, preds, targets):
         """
-        #we take a softmax over outputs
-        probs = F.softmax(outputs, dim=-1)
-        #argmax over the softmax \ sampling (e.g. multinomial)
-        samples_idx = torch.multinomial(probs, 1, replacement=True)
-        sample_strings = self.tgt_dict.string(samples_idx)  #see dictionary class of fairseq
-        #sample_strings = "I am a sentence"
-        reward_vals = evaluate(sample_strings, targets)
-        return reward_vals, samples_idx
+        Compute reward metric for a batch of prediction and target sentences
         """
-        pass
+        # detokenize (convert to str) preds & targets
+        preds_str = [self.decode(pred) for pred in preds]
+        targets_str = [self.decode(target) for target in targets]
+
+        # compute reward metric
+        seq_len = preds.shape[1]
+        if self.metric == "bleu":
+            reward = [[self.bleu.sentence_score(pred, [target]).score] * seq_len for pred, target in zip(preds_str, targets_str)]
+            
+        elif self.metric == "chrf":
+            reward = [[self.chrf.sentence_score(pred, [target]).score] * seq_len for pred, target in zip(preds_str, targets_str)]
+            
+        elif self.metric == "bertscore":
+            f1_scores = self.bertscore.compute(predictions=preds_str, references=targets_str, model_type='roberta-base')['f1']
+            reward = [[score] * seq_len for score in f1_scores]
+
+        elif self.metric == "bleurt":
+            bleurt_scores = self.bleurt.compute(predictions=preds_str, references=targets_str, checkpoint='bleurt-large-128')['scores']
+            reward = [[score] * seq_len for score in bleurt_scores]
+
+        else:
+            raise ValueError(f"metric {self.metric} not supported")
+        reward = torch.tensor(reward).to(self.device)
+        return reward
 
     def _compute_loss(self, outputs, targets, masks=None):
         """
@@ -128,20 +148,9 @@ class RLCriterion(FairseqCriterion):
             elif self.sampling == "argmax":
                 preds = torch.argmax(probs.view(-1, vocab_size), dim=-1).view(bsz, seq_len)
             
-            # detokenization
-            preds_str = [self.decode(pred) for pred in preds]
-            targets_str = [self.decode(target) for target in targets]
-            # print(f'1st target sent: {targets_str[0]}\n1st pred sent: {preds_str[0]}')
-            
             # compute reward metric
-            if self.metric == "bleu":
-                reward = torch.tensor([[self.bleu.sentence_score(pred, [targ]).score] * seq_len for pred, targ in zip(preds_str, targets_str)])
-            elif self.metric == "chrf":
-                reward = torch.tensor([[self.chrf.sentence_score(pred, [targ]).score] * seq_len for pred, targ in zip(preds_str, targets_str)])
-            else:
-                raise ValueError(f"metric {self.metric} not supported")
-        # print(f'reward: {reward}')
-        reward = torch.tensor(reward).to(self.device)
+            reward = self.compute_reward(preds, targets)
+            # print(f'reward: {reward}')
         # print(f'shape of probs: {probs.shape}, shape of targets: {targets.shape}, shape of masks: {masks.shape}, shape of preds: {preds.shape}, shape of rewards: {reward.shape}')
         # apply mask
         if masks is not None:
