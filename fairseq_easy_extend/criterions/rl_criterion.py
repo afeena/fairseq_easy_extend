@@ -31,8 +31,11 @@ class RLCriterion(FairseqCriterion):
         self.sampling = sampling
         self.bleu = BLEU(effective_order="True")
         self.chrf = CHRF()
+        self.meteor = load('meteor')
+        self.rouge = load('rouge')
+        self.ter = load('ter')
         self.bertscore = load('bertscore')
-        self.bleurt = load('bleurt', module_type='metric')
+        self.bleurt = load('bleurt', module_type='metric', checkpoint='bleurt-large-128')
         # init wandb project
         wandb.init(project=wandb_project)
         
@@ -86,11 +89,7 @@ class RLCriterion(FairseqCriterion):
             s = self.tgt_dict.string(
                 toks.int().cpu(),
                 "@@ ",
-                # The default unknown string in fairseq is `<unk>`, but
-                # this is tokenized by sacrebleu as `< unk >`, inflating
-                # BLEU scores. Instead, we use a somewhat more verbose
-                # alternative that is unlikely to appear in the real
-                # reference, but doesn't get split into multiple tokens.
+                # The default unknown string in fairseq is `<unk>`, but this is tokenized by sacrebleu as `< unk >`, inflating BLEU scores. Instead, we use a somewhat more verbose alternative that is unlikely to appear in the real reference, but doesn't get split into multiple tokens.
                 unk_string=(
                     "UNKNOWNTOKENINREF" if escape_unk else "UNKNOWNTOKENINHYP"
                 ),
@@ -105,6 +104,8 @@ class RLCriterion(FairseqCriterion):
         # detokenize (convert to str) preds & targets
         preds_str = [self.decode(pred) for pred in preds]
         targets_str = [self.decode(target) for target in targets]
+        print(f'1st target sent: {targets_str[0]}')
+        print(f'1st pred sent: {preds_str[0]}')
 
         # compute reward metric
         seq_len = preds.shape[1]
@@ -113,13 +114,25 @@ class RLCriterion(FairseqCriterion):
             
         elif self.metric == "chrf":
             reward = [[self.chrf.sentence_score(pred, [target]).score] * seq_len for pred, target in zip(preds_str, targets_str)]
+        
+        elif self.metric == "meteor":
+            meteor_scores = [self.meteor.compute(predictions=[preds], references=[targets])['meteor'] for preds, targets in zip(preds_str, targets_str)]
+            reward = [[score] * seq_len for score in meteor_scores]
+            
+        elif self.metric == "rouge":
+            rouge_scores = self.rouge.compute(predictions=preds_str, references=targets_str, use_aggregator=False)['rougeL']
+            reward = [[score] * seq_len for score in rouge_scores]
+            
+        elif self.metric == "ter":
+            ter_scores = self.ter.compute(predictions=preds_str, references=targets_str)['ter']
+            reward = [[score] * seq_len for score in ter_scores]
             
         elif self.metric == "bertscore":
-            f1_scores = self.bertscore.compute(predictions=preds_str, references=targets_str, model_type='roberta-base')['f1']
-            reward = [[score] * seq_len for score in f1_scores]
+            bert_scores = self.bertscore.compute(predictions=preds_str, references=targets_str, model_type='distilbert-base-uncased')['f1']
+            reward = [[score] * seq_len for score in bert_scores]
 
         elif self.metric == "bleurt":
-            bleurt_scores = self.bleurt.compute(predictions=preds_str, references=targets_str, checkpoint='bleurt-large-128')['scores']
+            bleurt_scores = self.bleurt.compute(predictions=preds_str, references=targets_str)['scores']
             reward = [[score] * seq_len for score in bleurt_scores]
 
         else:
@@ -170,59 +183,6 @@ class RLCriterion(FairseqCriterion):
         print(f'loss: {loss.item():.3f} | reward: {reward:.3f}')    
         
         return loss, reward
-        
-        #padding mask
-        ##If you take mask before you do sampling: you sample over a BATCH and your reward is on token level
-        #if you take mask after, you sample SENTENCES and calculate reward on a sentence level 
-        #but make sure you apply padding mask after both on log prob outputs, reward and id's (you might need them for gather function to           extract log_probs of the samples)
-
-        #Example 1: mask before sampling
-        #if masks is not None:
-        #    outputs, targets = outputs[masks], targets[masks]
-
-        #we take a softmax over outputs
-        #argmax over the softmax \ sampling (e.g. multinomial)
-        #sampled_sentence = [4, 17, 18, 19, 20]
-        #sampled_sentence_string = tgt_dict.string([4, 17, 18, 19, 20])
-        #target_sentence = "I am a sentence"
-        #with torch.no_grad()
-            #R(*) = eval_metric(sampled_sentence_string, target_sentence)
-            #R(*) is a number, BLEU, сhrf, etc.
-
-        #loss = -log_prob(outputs)*R()
-        #loss = loss.mean()
-        
-        #Example 2: mask after sampling
-        #bsz = outputs.size(0)
-        #seq_len = outputs.size(1)
-        #vocab_size = outputs.size(2)
-        #with torch.no_grad():
-        #probs = F.softmax(outputs, dim=-1).view(-1, vocab_size)
-        #sample_idx  = torch.multinomial(probs, 1,replacement=True).view(bsz, seq_len)
-        #print(sample_idx.shape)
-        #self.tgt_dict = task.tgt_dict in __init__()
-        #sampled_sentence_string = self.tgt_dict.string(sample_idx) #here you might also want to remove tokenization and bpe
-        #print(sampled_sentence_string) --> if you apply mask before, you get a sentence which is one token 
-        #imagine output[mask]=[MxV] where M is a sequence of all tokens in batch excluding padding symbols
-        #now you sample 1 vocabulary index for each token, so you end up in [Mx1] matrix
-        #when you apply string, it treats every token as a separate sentence --> hence you calc token-level metric. SO it makes much more sense to apply mask after sampling(!)
-
-        ####HERE calculate metric###
-        #with torch.no_grad()
-        #reward = eval_metric(sampled_sentence_string, target_sentence)
-        #reward is a number, BLEU, сhrf, etc.
-        #expand it to make it of a shape BxT - each token gets the same reward value (e.g. bleu is 20, so each token gets reward of 20 [20,20,20,20,20])
-    
-        #now you need to apply mask on both outputs and reward
-        #if masks is not None:
-        #    outputs, targets = outputs[masks], targets[masks]
-        #    reward, sample_idx = reward[mask], sample_idx[mask]
-        #log_probs = F.log_probs(outputs, dim=-1)
-        #log_probs_of_samples = torch.gather(...)
-        #loss = -log_probs*reward
-        # loss = loss.mean()
-        
-        #For more about mask see notes on NLP2-notes-on-mask
 
     @staticmethod
     def reduce_metrics(logging_outputs) -> None:

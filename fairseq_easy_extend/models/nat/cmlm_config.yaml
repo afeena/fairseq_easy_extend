@@ -7,7 +7,7 @@ task:
   noise: random_mask
 criterion:
   _name: rl_loss
-  sentence_level_metric: bertscore # one of bleu, chrf, bertscore, bleurt
+  sentence_level_metric: meteor # one of bleu, chrf, meteor, rouge, ter, bertscore, bleurt
   sampling: multinomial
   # wandb_entity: abhinav-neil
   # use_wandb: true
@@ -30,27 +30,31 @@ lr_scheduler:
   warmup_updates: 1
   warmup_init_lr: 1e-07
 dataset:
-  batch_size: 64
+  batch_size: 256
   max_tokens: 8192
-  validate_interval_updates: 20
+  batch_size_valid: 16
+  # validate_interval: 999
+  # validate_interval_updates: -1
+  disable_validation: true
 optimization:
-  lr: [0.0001]
+  lr: [0.00005]
   update_freq: [8] # update every N batches
   max_update: 1000  # max # updates
   max_epoch: 0  # max # training epochs
   stop_min_lr: 1e-09
 checkpoint:
-  save_dir: /home/neil/nanmt-fairseq/fairseq_easy_extend/models/nat/checkpoints/
+  save_dir: /home/neil/nanmt-fairseq/fairseq_easy_extend/models/nat/checkpoints/meteor/
   restore_file: /home/neil/nanmt-fairseq/fairseq_easy_extend/models/nat/checkpoints/checkpoint_pretrained.pt
   # finetune_from_model: true
   reset_optimizer: true
   save_interval: 1  # save a checkpoint every N epochs
   save_interval_updates: 20  # save a checkpoint every N updates
-  keep_interval_updates: 1  # keep last N checkpoints
+  keep_interval_updates: 0  # keep last N checkpoints
   keep_best_checkpoints: 1 # keep best N checkpoints
   no_epoch_checkpoints: true
+  no_last_checkpoints: true
   patience: -1 # early stopping in N validations
-  checkpoint_suffix: _bert
+  checkpoint_suffix: '' # suffix to add to the checkpoint file name
 common:
   log_format: simple
   log_interval: 100
