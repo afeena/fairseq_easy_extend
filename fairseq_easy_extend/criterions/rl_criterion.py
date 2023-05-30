@@ -10,6 +10,7 @@ from fairseq.logging import metrics
 from sacrebleu.metrics import BLEU, CHRF
 from evaluate import load
 import wandb
+from typing import Optional
 
 @dataclass
 class RLCriterionConfig(FairseqDataclass):
@@ -18,10 +19,11 @@ class RLCriterionConfig(FairseqDataclass):
     detokenization: bool = field(default=True,  metadata={"help": "whether to detokenize the output"})
     use_wandb: bool = field(default=True, metadata={"help": "whether to use wandb"})
     wandb_project: str = field(default="nlp2-nanmt", metadata={"help": "wandb project"})
+    wandb_run: Optional[str] = field(default=None, metadata={"help": "wandb run name"})
     
 @register_criterion("rl_loss", dataclass=RLCriterionConfig)
 class RLCriterion(FairseqCriterion):
-    def __init__(self, task, sentence_level_metric, sampling="multinomial", wandb_project='nlp2-nanmt'):
+    def __init__(self, task, sentence_level_metric, sampling="multinomial", wandb_project='nlp2-nanmt', wandb_run=None):
         super().__init__(task)
         self.metric = sentence_level_metric
         self.tokenizer = encoders.build_tokenizer(Namespace(tokenizer='moses'))
@@ -30,7 +32,7 @@ class RLCriterion(FairseqCriterion):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.sampling = sampling
         self.bleu = BLEU(effective_order="True")
-        self.chrf = CHRF()
+        # self.chrf = CHRF()
         self.meteor = load('meteor')
         self.rouge = load('rouge')
         self.ter = load('ter')
@@ -38,6 +40,8 @@ class RLCriterion(FairseqCriterion):
         self.bleurt = load('bleurt', module_type='metric', checkpoint='bleurt-large-128')
         # init wandb project
         wandb.init(project=wandb_project)
+        if wandb_run:
+            wandb.run.name = wandb_run
         
     def forward(self, model, sample, reduce=True):
         """Compute the loss for the given sample.
@@ -128,7 +132,7 @@ class RLCriterion(FairseqCriterion):
             reward = [[score] * seq_len for score in ter_scores]
             
         elif self.metric == "bertscore":
-            bert_scores = self.bertscore.compute(predictions=preds_str, references=targets_str, model_type='distilbert-base-uncased')['f1']
+            bert_scores = self.bertscore.compute(predictions=preds_str, references=targets_str, lang='en')['f1']
             reward = [[score] * seq_len for score in bert_scores]
 
         elif self.metric == "bleurt":

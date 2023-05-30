@@ -7,11 +7,12 @@ task:
   noise: random_mask
 criterion:
   _name: rl_loss
-  sentence_level_metric: meteor # one of bleu, chrf, meteor, rouge, ter, bertscore, bleurt
+  sentence_level_metric: bertscore # one of bleu, chrf, meteor, rouge, ter, bertscore, bleurt
   sampling: multinomial
   # wandb_entity: abhinav-neil
   # use_wandb: true
   wandb_project: nlp2-nanmt
+  wandb_run: bert
 model:
   _name: cmlm_transformer_base
   share_decoder_input_output_embed: true
@@ -43,7 +44,7 @@ optimization:
   max_epoch: 0  # max # training epochs
   stop_min_lr: 1e-09
 checkpoint:
-  save_dir: /home/neil/nanmt-fairseq/fairseq_easy_extend/models/nat/checkpoints/meteor/
+  save_dir: /home/neil/nanmt-fairseq/fairseq_easy_extend/models/nat/checkpoints/bert/
   restore_file: /home/neil/nanmt-fairseq/fairseq_easy_extend/models/nat/checkpoints/checkpoint_pretrained.pt
   # finetune_from_model: true
   reset_optimizer: true
