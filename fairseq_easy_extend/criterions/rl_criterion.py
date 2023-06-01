@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from fairseq.logging import metrics
 from sacrebleu.metrics import BLEU, CHRF
 from evaluate import load
+from comet import download_model, load_from_checkpoint
 import wandb
 from typing import Optional
 
@@ -17,7 +18,7 @@ class RLCriterionConfig(FairseqDataclass):
     sentence_level_metric: str = field(default="bleu", metadata={"help": "sentence level metric"}) 
     sampling: str = field(default="multinomial", metadata={"help": "sampling method"})
     detokenization: bool = field(default=True,  metadata={"help": "whether to detokenize the output"})
-    use_wandb: bool = field(default=True, metadata={"help": "whether to use wandb"})
+    # use_wandb: bool = field(default=True, metadata={"help": "whether to use wandb"})
     wandb_project: str = field(default="nlp2-nanmt", metadata={"help": "wandb project"})
     wandb_run: Optional[str] = field(default=None, metadata={"help": "wandb run name"})
     
@@ -28,6 +29,7 @@ class RLCriterion(FairseqCriterion):
         self.metric = sentence_level_metric
         self.tokenizer = encoders.build_tokenizer(Namespace(tokenizer='moses'))
         self.tgt_dict = task.target_dictionary
+        self.src_dict = task.source_dictionary
         self.tgt_lang = "en"
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.sampling = sampling
@@ -38,6 +40,9 @@ class RLCriterion(FairseqCriterion):
         self.ter = load('ter')
         self.bertscore = load('bertscore')
         self.bleurt = load('bleurt', module_type='metric', checkpoint='bleurt-large-128')
+        if self.metric == "comet":
+          model_path = download_model("Unbabel/wmt22-comet-da")
+          self.comet = load_from_checkpoint(model_path)
         # init wandb project
         wandb.init(project=wandb_project)
         if wandb_run:
@@ -65,7 +70,7 @@ class RLCriterion(FairseqCriterion):
         outs = outputs["word_ins"].get("out", None)
         masks = outputs["word_ins"].get("mask", None)
 
-        loss, reward = self._compute_loss(outs, tgt_tokens, masks)
+        loss, reward = self._compute_loss(outs, tgt_tokens, src_tokens, masks)
 
         # NOTE:
         # we don't need to use sample_size as denominator for the gradient
@@ -85,12 +90,13 @@ class RLCriterion(FairseqCriterion):
 
         return loss, sample_size, logging_output
 
-    def decode(self, toks, escape_unk=False):
+    def decode(self, toks, ref="tgt", escape_unk=False):
         """
         Decode a tensor of token ids into a string.
         """
+        decode_dict = self.tgt_dict if ref == "tgt" else self.src_dict
         with torch.no_grad():
-            s = self.tgt_dict.string(
+            s = decode_dict.string(
                 toks.int().cpu(),
                 "@@ ",
                 # The default unknown string in fairseq is `<unk>`, but this is tokenized by sacrebleu as `< unk >`, inflating BLEU scores. Instead, we use a somewhat more verbose alternative that is unlikely to appear in the real reference, but doesn't get split into multiple tokens.
@@ -101,13 +107,14 @@ class RLCriterion(FairseqCriterion):
             s = self.tokenizer.decode(s)
         return s
 
-    def compute_reward(self, preds, targets):
+    def compute_reward(self, preds, targets, sources=None):
         """
         Compute reward metric for a batch of prediction and target sentences
         """
         # detokenize (convert to str) preds & targets
         preds_str = [self.decode(pred) for pred in preds]
         targets_str = [self.decode(target) for target in targets]
+        sources_str = [self.decode(source, ref="src") for source in sources] if sources is not None else None
         print(f'1st target sent: {targets_str[0]}')
         print(f'1st pred sent: {preds_str[0]}')
 
@@ -138,16 +145,21 @@ class RLCriterion(FairseqCriterion):
         elif self.metric == "bleurt":
             bleurt_scores = self.bleurt.compute(predictions=preds_str, references=targets_str)['scores']
             reward = [[score] * seq_len for score in bleurt_scores]
-
+            
+        elif self.metric == "comet":
+            data = [{"src": source, "mt": pred, "ref": target} for source, pred, target in zip(sources_str, preds_str, targets_str)]
+            reward = self.comet.predict(data, batch_size=8, gpus=1)['scores']
+            reward = [[score] * seq_len for score in reward]
         else:
             raise ValueError(f"metric {self.metric} not supported")
         reward = torch.tensor(reward).to(self.device)
         return reward
 
-    def _compute_loss(self, outputs, targets, masks=None):
+    def _compute_loss(self, outputs, targets, sources, masks=None):
         """
         outputs: batch x len x d_model
         targets: batch x len
+        sources: batch x len
         masks:   batch x len
         """
         # input to device
@@ -166,7 +178,7 @@ class RLCriterion(FairseqCriterion):
                 preds = torch.argmax(probs.view(-1, vocab_size), dim=-1).view(bsz, seq_len)
             
             # compute reward metric
-            reward = self.compute_reward(preds, targets)
+            reward = self.compute_reward(preds, targets, sources)
             # print(f'reward: {reward}')
         # print(f'shape of probs: {probs.shape}, shape of targets: {targets.shape}, shape of masks: {masks.shape}, shape of preds: {preds.shape}, shape of rewards: {reward.shape}')
         # apply mask
