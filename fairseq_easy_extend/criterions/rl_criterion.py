@@ -38,7 +38,7 @@ class RLCriterion(FairseqCriterion):
         self.meteor = load('meteor')
         self.rouge = load('rouge')
         self.ter = load('ter')
-        self.bertscore = load('bertscore')
+        self.bert = load('bertscore')
         self.bleurt = load('bleurt', module_type='metric', checkpoint='bleurt-large-128')
         if self.metric == "comet":
           model_path = download_model("Unbabel/wmt22-comet-da")
@@ -138,8 +138,8 @@ class RLCriterion(FairseqCriterion):
             ter_scores = self.ter.compute(predictions=preds_str, references=targets_str)['ter']
             reward = [[score] * seq_len for score in ter_scores]
             
-        elif self.metric == "bertscore":
-            bert_scores = self.bertscore.compute(predictions=preds_str, references=targets_str, lang='en')['f1']
+        elif self.metric == "bert":
+            bert_scores = self.bert.compute(predictions=preds_str, references=targets_str, lang='en')['f1']
             reward = [[score] * seq_len for score in bert_scores]
 
         elif self.metric == "bleurt":

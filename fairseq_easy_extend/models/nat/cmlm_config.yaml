@@ -4,15 +4,14 @@ task:
   data: /home/neil/nanmt-fairseq/iwslt14.tokenized.de-en # path to data directory
   source_lang: de
   target_lang: en
-  noise: random_mask
+  noise: random_mask # one of no_noise, random_mask
 criterion:
   _name: rl_loss
-  sentence_level_metric: comet # one of bleu, chrf, meteor, rouge, ter, bertscore, bleurt, comet
-  sampling: multinomial
+  sentence_level_metric: bert # one of bleu, chrf, meteor, rouge, ter, bert, bleurt, comet
+  sampling: multinomial # one of argmax, multinomial
   # wandb_entity: abhinav-neil
-  # use_wandb: true
   wandb_project: nlp2-nanmt
-  wandb_run: comet_1
+  wandb_run: bert_1
 model:
   _name: cmlm_transformer_base
   share_decoder_input_output_embed: true
@@ -38,13 +37,13 @@ dataset:
   # validate_interval_updates: -1
   disable_validation: true
 optimization:
-  lr: [0.0001]
+  lr: [0.00001]
   update_freq: [8] # update every N batches
   max_update: 1000  # max # updates
   max_epoch: 0  # max # training epochs
   stop_min_lr: 1e-09
 checkpoint:
-  save_dir: /home/neil/nanmt-fairseq/fairseq_easy_extend/models/nat/checkpoints/comet/
+  save_dir: /home/neil/nanmt-fairseq/fairseq_easy_extend/models/nat/checkpoints/bert/
   restore_file: /home/neil/nanmt-fairseq/fairseq_easy_extend/models/nat/checkpoints/checkpoint_pretrained.pt
   # finetune_from_model: true
   reset_optimizer: true
