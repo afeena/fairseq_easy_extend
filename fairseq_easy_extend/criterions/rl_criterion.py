@@ -7,8 +7,9 @@ from fairseq.data import encoders
 from fairseq.dataclass import FairseqDataclass
 from dataclasses import dataclass, field
 from fairseq.logging import metrics
-from sacrebleu.metrics import BLEU, CHRF
+from sacrebleu.metrics import BLEU
 from evaluate import load
+import jiwer
 from comet import download_model, load_from_checkpoint
 import wandb
 from typing import Optional
@@ -18,7 +19,6 @@ class RLCriterionConfig(FairseqDataclass):
     sentence_level_metric: str = field(default="bleu", metadata={"help": "sentence level metric"}) 
     sampling: str = field(default="multinomial", metadata={"help": "sampling method"})
     detokenization: bool = field(default=True,  metadata={"help": "whether to detokenize the output"})
-    # use_wandb: bool = field(default=True, metadata={"help": "whether to use wandb"})
     wandb_project: str = field(default="nlp2-nanmt", metadata={"help": "wandb project"})
     wandb_run: Optional[str] = field(default=None, metadata={"help": "wandb run name"})
     
@@ -34,10 +34,9 @@ class RLCriterion(FairseqCriterion):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.sampling = sampling
         self.bleu = BLEU(effective_order="True")
-        # self.chrf = CHRF()
         self.meteor = load('meteor')
         self.rouge = load('rouge')
-        self.ter = load('ter')
+        # self.ter = load('ter')
         self.bert = load('bertscore')
         self.bleurt = load('bleurt', module_type='metric', checkpoint='bleurt-large-128')
         if self.metric == "comet":
@@ -122,9 +121,6 @@ class RLCriterion(FairseqCriterion):
         seq_len = preds.shape[1]
         if self.metric == "bleu":
             reward = [[self.bleu.sentence_score(pred, [target]).score] * seq_len for pred, target in zip(preds_str, targets_str)]
-            
-        elif self.metric == "chrf":
-            reward = [[self.chrf.sentence_score(pred, [target]).score] * seq_len for pred, target in zip(preds_str, targets_str)]
         
         elif self.metric == "meteor":
             meteor_scores = [self.meteor.compute(predictions=[preds], references=[targets])['meteor'] for preds, targets in zip(preds_str, targets_str)]
@@ -134,9 +130,9 @@ class RLCriterion(FairseqCriterion):
             rouge_scores = self.rouge.compute(predictions=preds_str, references=targets_str, use_aggregator=False)['rougeL']
             reward = [[score] * seq_len for score in rouge_scores]
             
-        elif self.metric == "ter":
-            ter_scores = self.ter.compute(predictions=preds_str, references=targets_str)['ter']
-            reward = [[score] * seq_len for score in ter_scores]
+        elif self.metric == "wer":
+            wer_scores = [jiwer.wer(target, pred) for pred, target in zip(targets_str, preds_str)]
+            reward = [[score] * seq_len for score in wer_scores]
             
         elif self.metric == "bert":
             bert_scores = self.bert.compute(predictions=preds_str, references=targets_str, lang='en')['f1']
