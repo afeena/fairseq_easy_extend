@@ -11,3 +11,4 @@ iwslt14.tokenized.de-en
 outputs
 wandb
 ```
+evaluate_gen.py

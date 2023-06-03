@@ -7,11 +7,11 @@ task:
   noise: random_mask # one of no_noise, random_mask
 criterion:
   _name: rl_loss
-  sentence_level_metric: bleu # one of bleu, chrf, meteor, rouge, ter, bert, bleurt, comet
+  sentence_level_metric: wer # one of bleu, meteor, rouge, wer, bert, bleurt, comet
   sampling: multinomial # one of argmax, multinomial
   # wandb_entity: abhinav-neil
   wandb_project: nlp2-nanmt
-  wandb_run: bleu
+  wandb_run: wer
 model:
   _name: cmlm_transformer_base
   share_decoder_input_output_embed: true
@@ -43,12 +43,12 @@ optimization:
   max_epoch: 0  # max # training epochs
   stop_min_lr: 1e-09
 checkpoint:
-  save_dir: /home/neil/nanmt-fairseq/fairseq_easy_extend/models/nat/checkpoints/bleu/
+  save_dir: /home/neil/nanmt-fairseq/fairseq_easy_extend/models/nat/checkpoints/wer/
   restore_file: /home/neil/nanmt-fairseq/fairseq_easy_extend/models/nat/checkpoints/checkpoint_pretrained.pt
   # finetune_from_model: true
   reset_optimizer: true
   save_interval: 1  # save a checkpoint every N epochs
-  save_interval_updates: 20  # save a checkpoint every N updates
+  save_interval_updates: 10  # save a checkpoint every N updates
   keep_interval_updates: 0  # keep last N checkpoints
   keep_best_checkpoints: 1 # keep best N checkpoints
   no_epoch_checkpoints: true
