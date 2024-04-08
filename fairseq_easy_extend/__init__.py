@@ -4,7 +4,6 @@ from fairseq_easy_extend.dataclass.initialize import hydra_init
 
 hydra_init()
 
-import fairseq_easy_extend.criterions  # noqa
 import fairseq_easy_extend.models  # noqa
 import fairseq_easy_extend.tasks  # noqa
 import fairseq_easy_extend.dataclass  # noqa
