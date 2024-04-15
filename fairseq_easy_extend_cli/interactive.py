@@ -31,6 +31,7 @@ from fairseq_easy_extend import options
 import fairseq_easy_extend.tasks.utils as task_utils
 
 fairseq.tasks.translation.TranslationTask.build_generator = task_utils.build_generator
+fairseq.tasks.translation_lev.TranslationLevenshteinTask.build_generator = task_utils.build_iterative_generator
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",

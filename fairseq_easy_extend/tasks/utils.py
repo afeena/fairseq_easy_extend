@@ -170,3 +170,18 @@ def build_generator(
         metric=getattr(args, "decoding_measure", "cosine"),
         **extra_gen_cls_kwargs,
     )
+
+def build_iterative_generator(self, models, args, **unused):
+    # add models input to match the API for SequenceGenerator
+    from fairseq_easy_extend.iterative_refinement_generator import IterativeRefinementGenerator
+
+    return IterativeRefinementGenerator(
+        self.target_dictionary,
+        eos_penalty=getattr(args, "iter_decode_eos_penalty", 0.0),
+        max_iter=getattr(args, "iter_decode_max_iter", 10),
+        beam_size=getattr(args, "iter_decode_with_beam", 1),
+        reranking=getattr(args, "iter_decode_with_external_reranker", False),
+        decoding_format=getattr(args, "decoding_format", None),
+        adaptive=not getattr(args, "iter_decode_force_max_iter", False),
+        retain_history=getattr(args, "retain_iter_history", False),
+    )
